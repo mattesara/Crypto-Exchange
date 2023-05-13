@@ -1,0 +1,17 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+
+    {% if request.user.is_authenticated %}
+    <h2>Welcome, ready to trade</h2>
+        <h3>Your balance is {{ balance }}</h3>
+
+     <p>New order</p>
+     <form method="POST" class="order-form">{% csrf_token %}
+         {{ form.as_p }}
+         <button type="submit" class="save btn btn-default">Save</button>
+     </form>
+        <a href="{% url 'logout_view' %}">Logout</a>
+    <li>{{ message }}</li>
+    {% endif %}
+{% endblock %}

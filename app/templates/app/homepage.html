@@ -1,0 +1,11 @@
+{% extends "app/base.html" %}
+
+{% block content %}
+    <h2>Welcome, login to trade</h2>
+    {% if user.is_authenticated %}
+        <a href="{% url 'trade_view' %}">Trade</a>
+    {% else %}
+        <a href="{% url 'login_view' %}">Login</a>
+        <a href="{% url 'register' %}">Registration</a>
+    {% endif %}
+{% endblock %}
