@@ -57,7 +57,7 @@ def trade_view(request):
                     order.order_id = ObjectId()
                     order_id = order.order_id
                     order.save()
-                    return redirect('execute_sell_order', order_id=order_id)
+                    execute_sell_order(order_id)
                 else:
                     message = ('Non hai abbastanza fondi per completare questa transazione')
                     form = OrderForm()
@@ -67,15 +67,15 @@ def trade_view(request):
                 order.order_id = ObjectId()
                 order_id = order.order_id
                 order.save()
-                return redirect('execute_buy_order', order_id=order_id)
+                execute_buy_order(order_id)
     else:
         form = OrderForm()
         return render(request, 'app/trade_view.html', {'form': form, 'balance': balance})
 
 
-def execute_buy_order(request, order_id):
+def execute_buy_order(order_id):
     order = get_object_or_404(Order, order_id=order_id)
-    matching_order = Order.objects.filter(type_order='SELL', price__lte=order.price, executed=False).order_by(
+    matching_order = Order.objects.filter(type_order='SELL', price__lte=order.price, executed=False).order_by('price',
         'datetime').first()
     if matching_order:
         Transaction.objects.create(buyer=order.profile, seller=matching_order.profile, buy_order=order,
@@ -92,9 +92,9 @@ def execute_buy_order(request, order_id):
         return redirect('homepage')
 
 
-def execute_sell_order(request, order_id):
+def execute_sell_order(order_id):
     order = get_object_or_404(Order, order_id=order_id)
-    matching_order = Order.objects.filter(type_order='BUY', price__gte=order.price, executed=False).order_by(
+    matching_order = Order.objects.filter(type_order='BUY', price__gte=order.price, executed=False).order_by('-price',
         'datetime').first()
     if matching_order:
         Transaction.objects.create(buyer=matching_order.profile, seller=order.profile, buy_order=matching_order,
