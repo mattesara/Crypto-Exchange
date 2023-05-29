@@ -75,35 +75,43 @@ def trade_view(request):
 
 def execute_buy_order(order_id):
     order = get_object_or_404(Order, order_id=order_id)
-    matching_order = Order.objects.filter(type_order='SELL', price__lte=order.price, executed=False).order_by('price',
-        'datetime').first()
-    if matching_order:
-        Transaction.objects.create(buyer=order.profile, seller=matching_order.profile, buy_order=order,
-                                   sell_order=matching_order, price=matching_order.price, datetime=timezone.now,
-                                   quantity=min(order.quantity, matching_order.quantity))
-        order.profile.balance += Transaction.quantity
-        matching_order.profile.balance -= Transaction.quantity
-        order.executed = True
-        matching_order.executed = True
-        order.save()
-        matching_order.save()
-        return HttpResponse('Order completed!')
-    else:
-        return redirect('homepage')
+    while not order.executed:
+        matching_order = Order.objects.filter(type_order='SELL', price__lte=order.price, executed=False).order_by(
+            'price',
+            'datetime').first()
+        if matching_order:
+            Transaction.objects.create(buyer=order.profile, seller=matching_order.profile, buy_order=order,
+                                       sell_order=matching_order, price=matching_order.price, datetime=timezone.now,
+                                       quantity=min(order.quantity, matching_order.quantity))
+            order.profile.balance += Transaction.quantity
+            matching_order.profile.balance -= Transaction.quantity
+            if order.price == matching_order.price:
+                order.executed = True
+            order.quantity -= Transaction.quantity
+            order.price -= Transaction.price
+            matching_order.executed = True
+            order.save()
+            matching_order.save()
+            return HttpResponse('Order completed!')
+        else:
+            return redirect('homepage')
 
 
 def execute_sell_order(order_id):
     order = get_object_or_404(Order, order_id=order_id)
     matching_order = Order.objects.filter(type_order='BUY', price__gte=order.price, executed=False).order_by('-price',
-        'datetime').first()
+                                                                                                             'datetime').first()
     if matching_order:
         Transaction.objects.create(buyer=matching_order.profile, seller=order.profile, buy_order=matching_order,
                                    sell_order=order, price=order, datetime=timezone.now,
                                    quantity=min(order.quantity, matching_order.quantity))
         order.profile.balance -= Transaction.quantity
         matching_order.profile.balance += Transaction.quantity
+        if order.price == matching_order.price:
+            matching_order.executed = True
+        matching_order.quantity -= Transaction.quantity
+        matching_order.price -= Transaction.price
         order.executed = True
-        matching_order.executed = True
         order.save()
         matching_order.save()
         return HttpResponse('Order completed!')
