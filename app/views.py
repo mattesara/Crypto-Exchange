@@ -87,12 +87,17 @@ def execute_buy_order(order_id):
             matching_order.profile.balance -= Transaction.quantity
             if order.price == matching_order.price:
                 order.executed = True
-            order.quantity -= Transaction.quantity
-            order.price -= Transaction.price
-            matching_order.executed = True
-            order.save()
-            matching_order.save()
-            return HttpResponse('Order completed!')
+                matching_order.executed = True
+                order.save()
+                matching_order.save()
+                return HttpResponse('Order completed!')
+            else:
+                order.quantity -= Transaction.quantity
+                order.price -= Transaction.price
+                matching_order.executed = True
+                order.save()
+                matching_order.save()
+                return HttpResponse('Order was partially filled!')
         else:
             return redirect('homepage')
 
@@ -109,12 +114,17 @@ def execute_sell_order(order_id):
         matching_order.profile.balance += Transaction.quantity
         if order.price == matching_order.price:
             matching_order.executed = True
-        matching_order.quantity -= Transaction.quantity
-        matching_order.price -= Transaction.price
-        order.executed = True
-        order.save()
-        matching_order.save()
-        return HttpResponse('Order completed!')
+            order.executed = True
+            order.save()
+            matching_order.save()
+            return HttpResponse('Order completed!')
+        else:
+            matching_order.quantity -= Transaction.quantity
+            matching_order.price -= Transaction.price
+            order.executed = True
+            order.save()
+            matching_order.save()
+            return HttpResponse('Order completed!')
     else:
         return redirect('homepage')
 
