@@ -91,13 +91,13 @@ def execute_buy_order(order_id):
                 order.save()
                 matching_order.save()
                 return HttpResponse('Order completed!')
-            if order.quantity >= matching_order.quantity:
+            if order.quantity > matching_order.quantity:
                 order.quantity -= Transaction.quantity
                 matching_order.executed = True
                 order.save()
                 matching_order.save()
                 return HttpResponse('Order was partially filled!')
-            if order.quantity <= matching_order.quantity:
+            if order.quantity < matching_order.quantity:
                 matching_order.quantity -= Transaction.quantity
                 order.executed = True
                 order.save()
@@ -124,13 +124,13 @@ def execute_sell_order(order_id):
                 order.save()
                 matching_order.save()
                 return HttpResponse('Order completed!')
-            if order.quantity >= matching_order.quantity:
+            if order.quantity > matching_order.quantity:
                 order.quantity -= Transaction.quantity
                 matching_order.executed = True
                 order.save()
                 matching_order.save()
                 return HttpResponse('Order was partially filled!')
-            if order.quantity <= matching_order.quantity:
+            if order.quantity < matching_order.quantity:
                 matching_order.quantity -= Transaction.quantity
                 order.executed = True
                 order.save()
