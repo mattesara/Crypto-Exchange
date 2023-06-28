@@ -10,6 +10,7 @@ from django.contrib.auth.models import User
 class Profile(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     balance = models.FloatField(default=0)
+    dollar_balance = models.FloatField(default=0)
 
 
 class Order(models.Model):
@@ -18,6 +19,7 @@ class Order(models.Model):
     datetime = models.DateTimeField(auto_now_add=True)
     price = models.FloatField()
     quantity = models.FloatField()
+    remaining_quantity = models.FloatField(default=quantity)
     executed = models.BooleanField(default=False)
     BUY = 'BUY'
     SELL = 'SELL'

@@ -77,28 +77,30 @@ def execute_buy_order(order_id):
     order = get_object_or_404(Order, order_id=order_id)
     while not order.executed:
         matching_order = Order.objects.filter(type_order='SELL', price__lte=order.price, executed=False).order_by(
-            'price',
-            'datetime').first()
+                'price',
+                'datetime').first()
         if matching_order:
             Transaction.objects.create(buyer=order.profile, seller=matching_order.profile, buy_order=order,
-                                       sell_order=matching_order, price=matching_order.price, datetime=timezone.now,
-                                       quantity=min(order.quantity, matching_order.quantity))
+                                           sell_order=matching_order, price=matching_order.price, datetime=timezone.now,
+                                           quantity=min(order.remaining_quantity, matching_order.remaining_quantity))
             order.profile.balance += Transaction.quantity
             matching_order.profile.balance -= Transaction.quantity
-            if order.quantity == matching_order.quantity:
+            order.profile.dollar_balance -= Transaction.price
+            matching_order.profile.dollar_balance += Transaction.price
+            if order.remaining_quantity == matching_order.remaining_quantity:
                 order.executed = True
                 matching_order.executed = True
                 order.save()
                 matching_order.save()
                 return HttpResponse('Order completed!')
-            if order.quantity > matching_order.quantity:
-                order.quantity -= Transaction.quantity
+            if order.remaining_quantity > matching_order.remaining_quantity:
+                order.remaining_quantity -= Transaction.quantity
                 matching_order.executed = True
                 order.save()
                 matching_order.save()
                 return HttpResponse('Order was partially filled!')
-            if order.quantity < matching_order.quantity:
-                matching_order.quantity -= Transaction.quantity
+            if order.remaining_quantity < matching_order.remaining_quantity:
+                matching_order.remaining_quantity -= Transaction.quantity
                 order.executed = True
                 order.save()
                 matching_order.save()
@@ -114,24 +116,26 @@ def execute_sell_order(order_id):
                                                                                                              'datetime').first()
         if matching_order:
             Transaction.objects.create(buyer=matching_order.profile, seller=order.profile, buy_order=matching_order,
-                                   sell_order=order, price=order, datetime=timezone.now,
-                                   quantity=min(order.quantity, matching_order.quantity))
+                                   sell_order=order, price=order.price, datetime=timezone.now,
+                                   quantity=min(order.remaining_quantity, matching_order.remaining_quantity))
             order.profile.balance -= Transaction.quantity
             matching_order.profile.balance += Transaction.quantity
-            if order.quantity == matching_order.quantity:
+            order.profile.dollar_balance += Transaction.price
+            matching_order.profile.dollar_balance -= Transaction.price
+            if order.remaining_quantity == matching_order.remaining_quantity:
                 matching_order.executed = True
                 order.executed = True
                 order.save()
                 matching_order.save()
                 return HttpResponse('Order completed!')
-            if order.quantity > matching_order.quantity:
-                order.quantity -= Transaction.quantity
+            if order.remaining_quantity > matching_order.remaining_quantity:
+                order.remaining_quantity -= Transaction.quantity
                 matching_order.executed = True
                 order.save()
                 matching_order.save()
                 return HttpResponse('Order was partially filled!')
-            if order.quantity < matching_order.quantity:
-                matching_order.quantity -= Transaction.quantity
+            if order.remaining_quantity < matching_order.remaining_quantity:
+                matching_order.remaining_quantity -= Transaction.quantity
                 order.executed = True
                 order.save()
                 matching_order.save()
@@ -152,6 +156,7 @@ def orders_view(request):
                 'datetime': active_order.datetime,
                 'price': active_order.price,
                 'quantity': active_order.quantity,
+                'remaining_quantity': active_order.remaining_quantity,
                 'type_order': active_order.type_order
 
             }
