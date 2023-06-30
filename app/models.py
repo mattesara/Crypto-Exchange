@@ -19,7 +19,7 @@ class Order(models.Model):
     datetime = models.DateTimeField(auto_now_add=True)
     price = models.FloatField()
     quantity = models.FloatField()
-    remaining_quantity = models.FloatField(default=quantity)
+    remaining_quantity = models.FloatField(blank=True)
     executed = models.BooleanField(default=False)
     BUY = 'BUY'
     SELL = 'SELL'
@@ -33,6 +33,10 @@ class Order(models.Model):
         default=BUY,
     )
 
+    def save(self, *args, **kwargs):
+        if not self.remaining_quantity:
+            self.remaining_quantity = self.quantity
+        super().save(*args, **kwargs)
 
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
