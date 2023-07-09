@@ -85,8 +85,9 @@ def execute_buy_order(order_id):
                                            quantity=min(order.remaining_quantity, matching_order.remaining_quantity))
             order.profile.balance += Transaction.quantity
             matching_order.profile.balance -= Transaction.quantity
-            order.profile.dollar_balance -= Transaction.price
-            matching_order.profile.dollar_balance += Transaction.price
+            total_order = Transaction.price * Transaction.quantity
+            order.profile.dollar_balance -= total_order
+            matching_order.profile.dollar_balance += total_order
             if order.remaining_quantity == matching_order.remaining_quantity:
                 order.executed = True
                 matching_order.executed = True
@@ -120,8 +121,9 @@ def execute_sell_order(order_id):
                                    quantity=min(order.remaining_quantity, matching_order.remaining_quantity))
             order.profile.balance -= Transaction.quantity
             matching_order.profile.balance += Transaction.quantity
-            order.profile.dollar_balance += Transaction.price
-            matching_order.profile.dollar_balance -= Transaction.price
+            total_order = Transaction.price * Transaction.quantity
+            order.profile.dollar_balance += total_order
+            matching_order.profile.dollar_balance -= total_order
             if order.remaining_quantity == matching_order.remaining_quantity:
                 matching_order.executed = True
                 order.executed = True
@@ -167,10 +169,16 @@ def orders_view(request):
 def profit_view(request):
     response = []
     profile = Profile.objects.get(user=request.user)
-    buy_orders = Order.objects.filter(profile=profile, type_order='BUY', executed=True).aggregate(Sum('price'))
-    sell_orders = Order.objects.filter(profile=profile, type_order='SELL', executed=True).aggregate(Sum('price'))
-    if buy_orders.price > sell_orders.price:
-        loss = buy_orders.price - sell_orders.price
+    buy_orders = Order.objects.filter(profile=profile, type_order='BUY', executed=True)
+    sell_orders = Order.objects.filter(profile=profile, type_order='SELL', executed=True)
+    total_buy_price = buy_orders.aggregate(Sum('price'))
+    total_sell_price = sell_orders.aggregate(Sum('price'))
+    total_buy_quantity = buy_orders.aggregate(Sum('quantity'))
+    total_sell_quantity = sell_orders.aggregate(Sum('quantity'))
+    total_buy_orders = total_buy_price * total_buy_quantity
+    total_sell_orders = total_sell_price * total_sell_quantity
+    if total_buy_orders > total_sell_orders:
+        loss = total_buy_orders - total_sell_orders
         response.append(
             {
                 'loss': loss
@@ -178,7 +186,7 @@ def profit_view(request):
         )
         return JsonResponse(response)
     else:
-        profit = sell_orders.price - buy_orders.price
+        profit = total_sell_orders - total_buy_orders
         response.append(
             {
                 'profit': profit
