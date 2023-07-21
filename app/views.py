@@ -171,12 +171,16 @@ def profit_view(request):
     profile = Profile.objects.get(user=request.user)
     buy_orders = Order.objects.filter(profile=profile, type_order='BUY', executed=True)
     sell_orders = Order.objects.filter(profile=profile, type_order='SELL', executed=True)
-    total_buy_price = buy_orders.aggregate(Sum('price'))
-    total_sell_price = sell_orders.aggregate(Sum('price'))
-    total_buy_quantity = buy_orders.aggregate(Sum('quantity'))
-    total_sell_quantity = sell_orders.aggregate(Sum('quantity'))
-    total_buy_orders = total_buy_price * total_buy_quantity
-    total_sell_orders = total_sell_price * total_sell_quantity
+    result_buy_orders = []
+    result_sell_orders = []
+    for buy_order in buy_orders:
+        tot_buy_order = buy_order.price * buy_order.quantity
+        result_buy_orders.append(tot_buy_order)
+    for sell_order in sell_orders:
+        tot_sell_order = sell_order.price * sell_order.quantity
+        result_sell_orders.append(tot_sell_order)
+    total_buy_orders = sum(result_buy_orders)
+    total_sell_orders = sum(result_sell_orders)
     if total_buy_orders > total_sell_orders:
         loss = total_buy_orders - total_sell_orders
         response.append(
