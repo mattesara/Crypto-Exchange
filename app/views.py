@@ -42,24 +42,24 @@ def homepage(request):
     return render(request, 'app/homepage.html')
 
 
-def trade_view(request):
+def trade_view(request):                                                    #trade_view with OrderForm allows users to enter their orders to make trades
     profile = Profile.objects.get(user=request.user)
     balance = profile.balance
     if request.method == "POST":
         form = OrderForm(request.POST)
-        if form.is_valid():
-            profile = get_object_or_404(Profile, user=request.user)
+        if form.is_valid():                                                 #check if entered form is valid
+            profile = get_object_or_404(Profile, user=request.user)         #obtaining profile instance
             order = form.save(commit=False)
             order.profile = profile
             order.datetime = timezone.now()
-            if order.SELL:
-                if order.quantity <= profile.balance:
-                    order.order_id = ObjectId()
+            if order.SELL:                                                  #if order type is sell, it checks that user has the cryptocurrencies he wants to sell
+                if order.quantity <= profile.balance:                       
+                    order.order_id = ObjectId()                             #obtaining order_id for run the function to execute order
                     order_id = order.order_id
                     order.save()
-                    execute_sell_order(order_id)
+                    execute_sell_order(order_id)                            #then the order filling function is performed
                 else:
-                    message = ('Non hai abbastanza fondi per completare questa transazione')
+                    message = ('Non hai abbastanza fondi per completare questa transazione')            #otherwise, the user is warned that he does not have enough funds
                     form = OrderForm()
                     return render(request, 'app/trade_view.html',
                                   {'form': form, 'balance': balance, 'message': message})
@@ -74,27 +74,27 @@ def trade_view(request):
 
 
 def execute_buy_order(order_id):
-    order = get_object_or_404(Order, order_id=order_id)
-    while not order.executed:
+    order = get_object_or_404(Order, order_id=order_id)                                #get order object by order_id
+    while not order.executed:                                                          #cycle that carries out the function until the main order is completely filled
         matching_order = Order.objects.filter(type_order='SELL', price__lte=order.price, executed=False).order_by(
-                'price',
-                'datetime').first()
+                'price',                                                               
+                'datetime').first()                                                    #search for matching_order that can satisfy at least a part of the order
         if matching_order:
-            Transaction.objects.create(buyer=order.profile, seller=matching_order.profile, buy_order=order,
+            Transaction.objects.create(buyer=order.profile, seller=matching_order.profile, buy_order=order,                #if there, create transaction with users data
                                            sell_order=matching_order, price=matching_order.price, datetime=timezone.now,
                                            quantity=min(order.remaining_quantity, matching_order.remaining_quantity))
-            order.profile.balance += Transaction.quantity
+            order.profile.balance += Transaction.quantity                              #updating users' crypto balance
             matching_order.profile.balance -= Transaction.quantity
-            total_order = Transaction.price * Transaction.quantity
+            total_order = Transaction.price * Transaction.quantity                     #updating users' dollar balance
             order.profile.dollar_balance -= total_order
             matching_order.profile.dollar_balance += total_order
-            if order.remaining_quantity == matching_order.remaining_quantity:
+            if order.remaining_quantity == matching_order.remaining_quantity:          #comparison order remaining quantities to see if both orders has been completely filled or not
                 order.executed = True
                 matching_order.executed = True
                 order.save()
-                matching_order.save()
+                matching_order.save()                                                  #if so, the orders are both executed
                 return HttpResponse('Order completed!')
-            if order.remaining_quantity > matching_order.remaining_quantity:
+            if order.remaining_quantity > matching_order.remaining_quantity:           #otherwise, only the completed filled order are executed
                 order.remaining_quantity -= Transaction.quantity
                 matching_order.executed = True
                 order.save()
@@ -147,7 +147,7 @@ def execute_sell_order(order_id):
             return redirect('homepage')
 
 
-def orders_view(request):
+def orders_view(request):                                                                #view to show the entire list of active orders
     response = []
     active_orders = Order.objects.filter(executed=False).order_by('-datetime')
     for active_order in active_orders:
@@ -166,23 +166,23 @@ def orders_view(request):
     return JsonResponse(response)
 
 
-def profit_view(request):
+def profit_view(request):                                                                #functionality to show the profit of profile
     response = []
     profile = Profile.objects.get(user=request.user)
-    buy_orders = Order.objects.filter(profile=profile, type_order='BUY', executed=True)
+    buy_orders = Order.objects.filter(profile=profile, type_order='BUY', executed=True)                #search for user' executed orders
     sell_orders = Order.objects.filter(profile=profile, type_order='SELL', executed=True)
     result_buy_orders = []
     result_sell_orders = []
     for buy_order in buy_orders:
-        tot_buy_order = buy_order.price * buy_order.quantity
+        tot_buy_order = buy_order.price * buy_order.quantity                              #calculation of the total value of each user's order
         result_buy_orders.append(tot_buy_order)
     for sell_order in sell_orders:
         tot_sell_order = sell_order.price * sell_order.quantity
         result_sell_orders.append(tot_sell_order)
-    total_buy_orders = sum(result_buy_orders)
+    total_buy_orders = sum(result_buy_orders)                                            #calculation of the total of all purchase and all sale orders placed by the user
     total_sell_orders = sum(result_sell_orders)
     if total_buy_orders > total_sell_orders:
-        loss = total_buy_orders - total_sell_orders
+        loss = total_buy_orders - total_sell_orders                                     #by subtracting the two totals I check whether the user had a profit or a loss
         response.append(
             {
                 'loss': loss
