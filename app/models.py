@@ -39,7 +39,7 @@ class Order(models.Model):
         super().save(*args, **kwargs)
 
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):               #unction that creates a user profile when a new user registers
+def create_user_profile(sender, instance, created, **kwargs):               #function that creates a user profile when a new user registers
     if created:
         Profile.objects.create(user=instance)
         instance.profile.balance = random.randint(1, 10)
