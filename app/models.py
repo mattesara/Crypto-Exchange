@@ -33,13 +33,13 @@ class Order(models.Model):
         default=BUY,
     )
 
-    def save(self, *args, **kwargs):
+    def save(self, *args, **kwargs):                                        #funtion to save order's quantity as order's remaining quantity when the order was created
         if not self.remaining_quantity:
             self.remaining_quantity = self.quantity
         super().save(*args, **kwargs)
 
 @receiver(post_save, sender=User)
-def create_user_profile(sender, instance, created, **kwargs):
+def create_user_profile(sender, instance, created, **kwargs):               #unction that creates a user profile when a new user registers
     if created:
         Profile.objects.create(user=instance)
         instance.profile.balance = random.randint(1, 10)
